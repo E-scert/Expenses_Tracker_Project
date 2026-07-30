@@ -8,7 +8,12 @@ it includes:
 - Row Level Security (RLS) policies
 - Indexes for performance
 - ERD diagram for visualization
-
+----
+##Repository Structure
+- Docs
+  * expenseTracker.sql(migration file)
+  * ExpenseTrackerSchema.png
+ -README.md
 
 ##  Database Schema
 ### Core Tables
