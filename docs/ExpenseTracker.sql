@@ -8,7 +8,7 @@ CREATE table if not exists users(
 --create Categories table
 CREATE table if not exists categories(
  category_id SERIAL PRIMARY KEY,
- category_name varchar(20) check(category_name in('food','transport','entertainment','other')),
+ category_name varchar(20) check(category_name in('food','transport','entertainment')) DEFAULT 'other',
  user_id int references users(user_id),
  created_at date default now(),
  
@@ -99,17 +99,38 @@ using (user_id = current_setting('app.current_user_id')::int)
 with check (user_id = current_setting('app.current_user_id')::int);
 
 --categorzed expenses policies
+-- View policy: only see categorized expenses if the linked expense belongs to the current user
 CREATE POLICY view_categorized_expense
-on categorized_expenses
-for select
-using (user_id = current_setting('app.current_user_id')::int);
+ON categorized_expenses
+FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM expenses e
+    WHERE e.expense_id = categorized_expenses.expense_id
+      AND e.user_id = current_setting('app.current_user_id')::int
+  )
+);
 
+-- Insert policy: only allow linking if the expense belongs to the current user
 CREATE POLICY insert_categorized_expense
-on categorized_expenses
-for INSERT 
-with check (user_id = current_setting('app.current_user_id')::int);
+ON categorized_expenses
+FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM expenses e
+    WHERE e.expense_id = categorized_expenses.expense_id
+      AND e.user_id = current_setting('app.current_user_id')::int
+  )
+);
 
+-- Delete policy: only allow unlinking if the expense belongs to the current user
 CREATE POLICY delete_categorized_expense
-on categorized_expenses
-for delete 
-using (user_id = current_setting('app.current_user_id')::int);
+ON categorized_expenses
+FOR DELETE
+USING (
+  EXISTS (
+    SELECT 1 FROM expenses e
+    WHERE e.expense_id = categorized_expenses.expense_id
+      AND e.user_id = current_setting('app.current_user_id')::int
+  )
+);
