@@ -134,3 +134,128 @@ USING (
       AND e.user_id = current_setting('app.current_user_id')::int
   )
 );
+
+
+--functions
+--function of total expenses
+CREATE OR REPLACE FUNCTION total_expenses(u_user_id int)
+returns numeric as $$
+declare total_expense numeric(10,2);
+
+begin
+ 
+ Select SUM(amount) into total_expense
+ from expenses
+ where user_id = u_user_id;
+ 
+ return COALESCE(total_expense,0);
+ 
+ end;
+ $$ language plpgsql;
+ 
+ --function for category_totals
+ CREATE OR REPLACE FUNCTION category_totals(cat_name varchar, u_id int)
+ returns numeric(10,2) as $$
+ 
+ declare total numeric(10,2);
+ 
+ begin
+ 
+ SELECT SUM(e.amount) into total
+ from expenses e 
+ join categorized_expenses ce 
+  on e.expense_id = ce.expense_id
+   join categories c 
+   on ce.category_id = c.category_id
+   where c.category_name = cat_name
+   and e.user_id = u_id;
+   
+   return COALESCE(total,0);
+   end;
+   $$ language plpgsql;
+   
+   
+   ---procedures
+   --add user PROCEDURE
+   CREATE OR REPLACE PROCEDURE add_user(u_name varchar)
+   language plpgsql
+   as $$ 
+   
+   begin
+    INSERT INTO users(user_name) VALUES(u_name);
+	
+	EXCEPTION 
+	
+	WHEN unique_violation THEN 
+	RAISE NOTICE 'Username % already exists',u_name;
+	WHEN OTHERS THEN 
+	raise notice 'Something went wrong';
+
+	END;
+	$$;
+	--update user procedure
+	CREATE OR REPLACE PROCEDURE update_user(u_id int, n_name varchar)
+	language plpgsql
+	AS $$
+	DECLARE 
+    rowcount INT;
+	
+	begin 
+	
+	UPDATE users SET user_name = n_name
+	WHERE user_id = u_id;
+	
+	GET DIAGNOSTICS rowcount = ROW_COUNT;
+	
+	if rowcount = 0 then
+	
+	raise notice 'User id % does not exists',u_id;
+	
+	end if;
+
+	END;
+	$$;
+	
+	---delete user Procedure
+	CREATE OR REPLACE PROCEDURE delete_user(u_id int)
+	language plpgsql
+	AS $$
+	
+	declare
+	
+	rowcount int;
+	
+	begin
+	
+	DELETE FROM expenses where user_id = u_id;
+	DELETE FROM categories WHERE user_id = u_id;
+	DELETE FROM users WHERE user_id = u_id;
+	
+	GET DIAGNOSTICS rowcount = ROW_COUNT;
+	
+	if rowcount = 0 then
+	
+	raise notice 'User id % does not exists',u_id;
+	
+	end if;
+	end;
+	$$;
+	
+	
+	---category procedures 
+	--add category procedures 
+	CREATE OR REPLACE PROCEDURE add_category(u_id int ,c_name varchar)
+	language plpgsql
+	as $$
+	
+	begin
+	
+	INSERT INTO categories(user_id,category_name) values(u_id,c_name);
+	
+	EXCEPTION 
+	WHEN unique_violation then
+	raise notice 'The category of % already exists', c_name;
+	
+	end;
+	
+	$$;
