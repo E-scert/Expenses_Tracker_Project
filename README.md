@@ -68,6 +68,47 @@ Row Level Security (RLS) ensures:
 - Deploy to Supabase or cloud PostgreSQL once scaling is needed.  
 
 ---
+## How to run locally 
+1. Prerequisites
+   * install PostgreSQL (>= 14) on your machine
+   * install Node.js (>= 18) and npm.
+   * clone this repository
+   * git clone https://github.com/E-scert/Expenses_Tracker_Project.git
+      cd Expenses_Tracker_Project
+2. Set PostgreSQL
+   * open psql and create database
+     - CREATE DATABASE expense_tracker_db;
+   * Run the migration file to apply schema
+     - psql -d expense_tracker_db -f docs/expensesTracker.sql
+    
+   * Verify tables, functions, and proceudres
+     - \dt --list tables
+     - \df -- list functions/procedures
+     - \dy --list triggers
+    
+  3. Create .env file in the backend folder:
+      PORT=5000
+      DB_HOST=localhost
+      DB_PORT=5432
+      DB_NAME=expense_trancter_db
+      DB_USER=your_postgres_username
+      DB_PASSWORD=your_postgres_password
+
+     * install dependencies
+       - npm install
+      
+      * start sserver
+        - npm start
+       
+     4. Frontend (optional)
+        * if u scafolded a frondend
+          - navigate to the frontend folder
+          - install dependencies
+            * npm install
+            * npm run dev
+            * open http://localhost:3000 locahost in any search engine
+
+
 
 ## Developer Notes
 This project is part of my journey as a **Computer Science student specializing in database development**.  
