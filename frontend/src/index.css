@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(225, 29, 46, 0.16), transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(225, 29, 46, 0.08), transparent 40%),
+    #0a0a0a;
+  min-height: 100vh;
+}
+
+::selection {
+  background: #e11d2e;
+  color: #fff;
+}
+
+/* --- motion --- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeUp { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-riseIn { animation: riseIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pulseLine {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.animate-pulseLine { animation: pulseLine 1.6s ease-in-out infinite; }
+
+@keyframes tickCount {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+.animate-tick { animation: tickCount 0.3s ease-out; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-toastIn { animation: toastIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.stagger > * { animation-fill-mode: both; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* focus visibility */
+:focus-visible {
+  outline: 2px solid #e11d2e;
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

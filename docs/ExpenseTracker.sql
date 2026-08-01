@@ -8,7 +8,7 @@ CREATE table if not exists users(
 --create Categories table
 CREATE table if not exists categories(
  category_id SERIAL PRIMARY KEY,
- category_name varchar(20) check(category_name in('food','transport','entertainment','other')),
+ category_name varchar(20) check(category_name in('food','transport','entertainment','other')) default 'other',
  user_id int references users(user_id),
  created_at date default now()
  
