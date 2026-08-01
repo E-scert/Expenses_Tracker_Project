@@ -37,3 +37,4 @@ Row Level Security (RLS) ensures:
 - Expenses are scoped to the logged-in user
 - Junction links only connect a user’s own categories and expenses
 
+**FYI i use AI to generate backend and frontend code for the database that i developed from scratch, because i focus on Database development and management but i still know the principles of a full stack developer.***
