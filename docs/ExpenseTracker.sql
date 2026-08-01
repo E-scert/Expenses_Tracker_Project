@@ -8,9 +8,9 @@ CREATE table if not exists users(
 --create Categories table
 CREATE table if not exists categories(
  category_id SERIAL PRIMARY KEY,
- category_name varchar(20) check(category_name in('food','transport','entertainment')) DEFAULT 'other',
+ category_name varchar(20) check(category_name in('food','transport','entertainment','other')),
  user_id int references users(user_id),
- created_at date default now(),
+ created_at date default now()
  
 );
 
@@ -31,7 +31,7 @@ create table if not exists categorized_expenses(
 
 --on categories
 ---create INDEXES 
-create or replace index idx_category on categories(category_name);
+create index idx_category on categories(category_name);
 --on expenses
 create index idx_expenses_amount on expenses(amount);
 
@@ -54,7 +54,13 @@ for update
 using (user_id = current_setting('app.current_user_id')::int)
 with check (user_id = current_setting('app.current_user_id')::int);
 
---category table
+CREATE POLICY delete_profile
+on users
+for delete
+using (user_id = current_setting('app.current_user_id')::int);
+
+
+--Policy category table
 CREATE POLICY view_category
 on categories
 for select 
@@ -99,7 +105,8 @@ using (user_id = current_setting('app.current_user_id')::int)
 with check (user_id = current_setting('app.current_user_id')::int);
 
 --categorzed expenses policies
--- View policy: only see categorized expenses if the linked expense belongs to the current user
+
+View policy: only see categorized expenses if the linked expense belongs to the current user
 CREATE POLICY view_categorized_expense
 ON categorized_expenses
 FOR SELECT
@@ -111,7 +118,7 @@ USING (
   )
 );
 
--- Insert policy: only allow linking if the expense belongs to the current user
+
 CREATE POLICY insert_categorized_expense
 ON categorized_expenses
 FOR INSERT
@@ -123,7 +130,6 @@ WITH CHECK (
   )
 );
 
--- Delete policy: only allow unlinking if the expense belongs to the current user
 CREATE POLICY delete_categorized_expense
 ON categorized_expenses
 FOR DELETE
@@ -154,10 +160,12 @@ begin
  $$ language plpgsql;
  
  --function for category_totals
- CREATE OR REPLACE FUNCTION category_totals(cat_name varchar, u_id int)
+ CREATE OR REPLACE FUNCTION category_totals(cat_name varchar, u_id int, period varchar)
  returns numeric(10,2) as $$
  
- declare total numeric(10,2);
+ declare 
+ total numeric(10,2);
+ period varchar default 'overall';
  
  begin
  
@@ -168,11 +176,16 @@ begin
    join categories c 
    on ce.category_id = c.category_id
    where c.category_name = cat_name
-   and e.user_id = u_id;
+   and e.user_id = u_id AND (
+         period = 'overall' 
+		 OR (period = 'monthly' AND date_trunc('month', e.created_at) = date_trunc('month',CURRENT_DATE))
+		 OR (period = 'weekly' AND date_trunc('week', e.created_at) = date_trunc('week', CURRENT_DATE))
+   );
    
    return COALESCE(total,0);
    end;
    $$ language plpgsql;
+   
    
    
    ---procedures
@@ -189,7 +202,7 @@ begin
 	WHEN unique_violation THEN 
 	RAISE NOTICE 'Username % already exists',u_name;
 	WHEN OTHERS THEN 
-	raise notice 'Something went wrong';
+	raise notice 'Unexpected Error: %',SQLERRM;
 
 	END;
 	$$;
@@ -228,14 +241,16 @@ begin
 	begin
 	
 	DELETE FROM expenses where user_id = u_id;
+	
 	DELETE FROM categories WHERE user_id = u_id;
+
 	DELETE FROM users WHERE user_id = u_id;
 	
 	GET DIAGNOSTICS rowcount = ROW_COUNT;
 	
 	if rowcount = 0 then
 	
-	raise notice 'User id % does not exists',u_id;
+	raise notice 'User id % does not exist',u_id;
 	
 	end if;
 	end;
@@ -259,3 +274,123 @@ begin
 	end;
 	
 	$$;
+	
+	
+	
+	--delete category procedure 
+		CREATE OR REPLACE PROCEDURE delete_category(c_id int)
+	language plpgsql
+	as $$
+	
+	DECLARE 
+	countrows int;
+	begin
+	
+	DELETE from categorized_expenses where category_id = c_id;
+	DELETE FROM categories where category_id = c_id;
+	
+	GET DIAGNOSTICS countrows = ROW_COUNT;
+	
+	if countrows = 0 then
+	
+	raise notice 'User category id % does not exist',c_id;
+	
+	end if;
+	
+	end;
+	
+	$$;
+	
+		--update category procedure 
+   CREATE OR REPLACE PROCEDURE update_category(c_id int, n_cat varchar)
+	language plpgsql
+	as $$
+	
+	DECLARE 
+	countrows int;
+	begin
+	
+	UPDATE categories SET category_name = n_cat 
+	WHERE category_id = c_id;
+	
+	
+	GET DIAGNOSTICS countrows = ROW_COUNT;
+	
+	if countrows = 0 then
+	
+	raise notice 'User category id % does not exist, CANNOT UPDATE',c_id;
+	
+	end if;
+	
+	end;
+	
+	$$;
+	
+	--expense procedures 
+	CREATE OR REPLACE PROCEDURE add_expense(u_id int, n_amount numeric, c_id int)
+	language plpgsql
+	AS $$
+	DECLARE 
+	u_expense_id int;
+	
+
+	begin
+	
+	INSERT INTO expenses(amount, user_id) values(n_amount, u_id)RETURNING expense_id INTO u_expense_id;
+  
+	INSERT INTO categorized_expenses(category_id, expense_id) values(c_id,u_expense_id);
+
+	end;
+	$$;
+	
+	--delete expenses procedures
+	
+	CREATE OR REPLACE PROCEDURE delete_expense(c_id int, ex_id int)
+	language plpgsql
+	AS $$
+	
+	DECLARE 
+	rowcount int;
+	
+	begin 
+	 
+	 delete from categorized_expenses where category_id = c_id and expense_id = ex_id;
+	 delete from expenses where expense_id = ex_id;
+	 
+	 GET DIAGNOSTICS rowcount = ROW_COUNT;
+	 
+	 IF rowcount = 0  then
+	 RAISE NOTICE 'Expenses not found';
+	 
+	 end if;
+	 
+	 END;
+	 $$;
+	 
+	 --update expense Procedure
+	 
+	 CREATE OR REPLACE PROCEDURE update_expense(e_id int , n_amount numeric)
+	 language plpgsql
+	 AS $$
+	 
+	 DECLARE 
+	 rowcount int;
+	 
+	 BEGIN 
+	 
+	 update expenses SET amount = n_amount 
+	 where expense_id = e_id;
+	 
+	 GET DIAGNOSTICS rowcount = ROW_COUNT;
+	 
+	 if rowcount = 0 then
+	 
+	 RAISE NOTICE 'Expense id not found';
+	 
+	 end if;
+	 
+	 end;
+	 $$;
+	 
+	 
+	
