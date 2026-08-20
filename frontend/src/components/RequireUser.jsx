@@ -4,6 +4,6 @@ import { useActiveUser } from '../context/UserContext.jsx';
 
 export default function RequireUser({ children }) {
   const { activeUser } = useActiveUser();
-  if (!activeUser) return <Navigate to="/login" replace />;
+  if (!activeUser) return <Navigate to="/welcome" replace />;
   return children;
 }
